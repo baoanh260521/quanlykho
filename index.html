@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Kho Phân Quyền & Hình Ảnh</title>
+    <title>Hệ Thống Kho Phân Quyền & Hình Ảnh Nội Bộ</title>
     <style>
         :root { --primary: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f1c40f; --dark: #2c3e50; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
-        /* Login Form */
+        /* Forms */
         #login-screen { max-width: 400px; margin: 100px auto; text-align: center; }
         .input-group { margin-bottom: 15px; text-align: left; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
@@ -19,24 +19,24 @@
         .btn-blue { background: var(--primary); }
         .btn-green { background: var(--success); }
         .btn-red { background: var(--danger); }
+        button:hover { opacity: 0.8; }
 
         /* Dashboard */
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--dark); color: white; padding: 10px 20px; border-radius: 8px; }
+        .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
         
         /* Product Card */
-        .prod-card { background: white; border-radius: 8px; overflow: hidden; border: 1px solid #eee; position: relative; }
+        .prod-card { background: white; border-radius: 8px; overflow: hidden; border: 1px solid #eee; transition: 0.3s; }
         .prod-img { width: 100%; height: 180px; object-fit: cover; background: #eee; }
         .prod-info { padding: 15px; }
-        .badge { padding: 3px 8px; border-radius: 10px; font-size: 12px; color: white; }
         
-        /* Modal & Tabs */
         .hidden { display: none !important; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: #f8f9fa; }
-
-        .confirm-tag { background: var(--warning); color: black; padding: 2px 5px; border-radius: 3px; font-size: 11px; }
+        
+        #img-preview { max-width: 150px; margin-top: 10px; border: 1px dashed #ccc; border-radius: 5px; display: none; }
     </style>
 </head>
 <body>
@@ -44,36 +44,30 @@
 <div class="container">
     <div id="login-screen" class="card">
         <h2>🔑 Đăng Nhập Hệ Thống</h2>
-        <div class="input-group">
-            <label>Tài khoản:</label>
-            <input type="text" id="user-input" placeholder="admin hoặc nhanvien">
-        </div>
-        <div class="input-group">
-            <label>Mật khẩu:</label>
-            <input type="password" id="pass-input" placeholder="123">
-        </div>
+        <div class="input-group"><input type="text" id="user-input" placeholder="Tài khoản"></div>
+        <div class="input-group"><input type="password" id="pass-input" placeholder="Mật khẩu"></div>
         <button class="btn-blue" onclick="handleLogin()" style="width: 100%">Đăng Nhập</button>
-        <p style="font-size: 12px; color: #666; margin-top: 10px;">Admin: <b>admin/123</b> | Nhân viên: <b>nv1/123</b></p>
     </div>
 
     <div id="main-screen" class="hidden">
         <div class="nav">
-            <span id="welcome-user">Chào mừng, Admin</span>
+            <span id="welcome-user">Chào mừng</span>
             <button class="btn-red" onclick="handleLogout()">Đăng xuất</button>
         </div>
 
         <div class="tabs">
-            <button class="btn-blue" onclick="showSection('inventory')">📦 Kho & Order</button>
-            <button class="btn-green admin-only" onclick="showSection('import')">➕ Nhập Hàng</button>
-            <button class="btn-blue admin-only" onclick="showSection('confirm')">🔔 Duyệt Xuất Kho (<span id="pending-count">0</span>)</button>
+            <button class="btn-blue" onclick="showSection('inventory')">📦 Kho hàng</button>
+            <button class="btn-green admin-only" onclick="showSection('import')">➕ Nhập hàng</button>
+            <button class="btn-blue admin-only" onclick="showSection('confirm')">🔔 Duyệt (<span id="pending-count">0</span>)</button>
+            <button class="btn-red admin-only" onclick="showSection('users')">👥 Tài khoản</button>
+            <button class="btn-blue" onclick="showSection('profile')">⚙️ Cài đặt</button>
         </div>
 
-        <hr style="margin: 20px 0;">
-
         <div id="sec-inventory" class="section">
-            <h3>Danh Sách Sản Phẩm</h3>
-            <div class="grid" id="product-grid">
-                </div>
+            <div class="card">
+                <input type="text" id="search-input" placeholder="🔍 Tìm kiếm sản phẩm..." onkeyup="renderAll()">
+            </div>
+            <div class="grid" id="product-grid"></div>
         </div>
 
         <div id="sec-import" class="section hidden">
@@ -82,7 +76,11 @@
                 <div class="input-group"><label>Tên sản phẩm:</label><input type="text" id="in-name"></div>
                 <div class="input-group"><label>Giá bán:</label><input type="number" id="in-price"></div>
                 <div class="input-group"><label>Số lượng:</label><input type="number" id="in-qty"></div>
-                <div class="input-group"><label>Link hình ảnh (URL):</label><input type="text" id="in-img" placeholder="https://abc.com/anh.jpg"></div>
+                <div class="input-group">
+                    <label>Hình ảnh (JPG/PNG):</label>
+                    <input type="file" id="in-img-file" accept="image/*">
+                    <img id="img-preview">
+                </div>
                 <button class="btn-green" onclick="addProduct()">Lưu vào kho</button>
             </div>
         </div>
@@ -91,146 +89,199 @@
             <div class="card">
                 <h3>Yêu Cầu Chờ Duyệt</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Số lượng</th>
-                            <th>Người Order</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Sản phẩm</th><th>SL</th><th>Người gửi</th><th>Thao tác</th></tr></thead>
                     <tbody id="pending-table"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <div id="sec-users" class="section hidden">
+            <div class="card">
+                <h3>Tạo Tài Khoản</h3>
+                <div class="input-group"><input type="text" id="new-user" placeholder="Tên đăng nhập"></div>
+                <div class="input-group"><input type="password" id="new-pass" placeholder="Mật khẩu"></div>
+                <div class="input-group">
+                    <select id="new-role">
+                        <option value="staff">Nhân viên (Staff)</option>
+                        <option value="admin">Quản trị (Admin)</option>
+                    </select>
+                </div>
+                <button class="btn-green" onclick="registerUser()">Tạo tài khoản</button>
+            </div>
+            <div class="card">
+                <h3>Danh Sách Tài Khoản</h3>
+                <table>
+                    <thead><tr><th>Username</th><th>Quyền</th><th>Thao tác</th></tr></thead>
+                    <tbody id="user-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-profile" class="section hidden">
+            <div class="card" style="max-width: 400px;">
+                <h3>Đổi Mật Khẩu</h3>
+                <div class="input-group"><label>Mật khẩu cũ:</label><input type="password" id="old-pass"></div>
+                <div class="input-group"><label>Mật khẩu mới:</label><input type="password" id="new-password"></div>
+                <div class="input-group"><label>Xác nhận:</label><input type="password" id="confirm-new-pass"></div>
+                <button class="btn-blue" onclick="changePassword()">Cập nhật</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // DỮ LIỆU MẪU
+    let users = JSON.parse(localStorage.getItem('pro_users')) || [
+        { username: 'admin', pass: '123', role: 'admin' },
+        { username: 'nv1', pass: '123', role: 'staff' }
+    ];
     let products = JSON.parse(localStorage.getItem('pro_products')) || [];
     let pendingOrders = JSON.parse(localStorage.getItem('pro_pending')) || [];
     let currentUser = null;
 
-    // 1. QUẢN LÝ ĐĂNG NHẬP
-    function handleLogin() {
-        const user = document.getElementById('user-input').value;
-        const pass = document.getElementById('pass-input').value;
+    // HIỂN THỊ ẢNH XEM TRƯỚC
+    document.getElementById('in-img-file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const preview = document.getElementById('img-preview');
+                preview.src = ev.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 
-        if (pass === '123') {
-            currentUser = { username: user, role: user === 'admin' ? 'admin' : 'staff' };
+    function handleLogin() {
+        const u = document.getElementById('user-input').value;
+        const p = document.getElementById('pass-input').value;
+        const found = users.find(x => x.username === u && x.pass === p);
+        if (found) {
+            currentUser = found;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-screen').classList.remove('hidden');
-            document.getElementById('welcome-user').innerText = `Tài khoản: ${user.toUpperCase()} (${currentUser.role})`;
-            
-            // Phân quyền hiển thị
-            if(currentUser.role !== 'admin') {
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-            } else {
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-            }
+            document.getElementById('welcome-user').innerText = `Tài khoản: ${found.username.toUpperCase()} (${found.role})`;
+            document.querySelectorAll('.admin-only').forEach(el => {
+                found.role === 'admin' ? el.classList.remove('hidden') : el.classList.add('hidden');
+            });
             renderAll();
-        } else {
-            alert("Sai mật khẩu!");
-        }
+        } else { alert("Sai thông tin!"); }
     }
 
-    function handleLogout() {
-        location.reload();
-    }
+    function handleLogout() { location.reload(); }
 
-    // 2. CHUYỂN PHẦN (TABS)
     function showSection(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
         document.getElementById('sec-' + id).classList.remove('hidden');
     }
 
-    // 3. THÊM SẢN PHẨM (ADMIN)
     function addProduct() {
         const name = document.getElementById('in-name').value;
         const price = document.getElementById('in-price').value;
         const qty = document.getElementById('in-qty').value;
-        const img = document.getElementById('in-img').value || 'https://via.placeholder.com/150';
+        const file = document.getElementById('in-img-file').files[0];
 
-        if(!name || !price || !qty) return alert("Vui lòng nhập đủ!");
+        if(!name || !price || !qty || !file) return alert("Thiếu thông tin hoặc ảnh!");
 
-        products.push({ id: Date.now(), name, price, qty: Number(qty), img });
-        save();
-        alert("Đã thêm!");
-        showSection('inventory');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            products.push({ id: Date.now(), name, price, qty: Number(qty), img: e.target.result });
+            save();
+            document.getElementById('img-preview').style.display = 'none';
+            showSection('inventory');
+        };
+        reader.readAsDataURL(file);
     }
 
-    // 4. ORDER NHANH (STAFF/ADMIN)
     function quickOrder(id) {
         const p = products.find(x => x.id === id);
-        const qty = prompt(`Bạn muốn order bao nhiêu ${p.name}? (Tồn: ${p.qty})`);
-        
-        if (qty && Number(qty) <= p.qty) {
-            pendingOrders.push({
-                id: Date.now(),
-                prodId: p.id,
-                prodName: p.name,
-                qty: Number(qty),
-                user: currentUser.username
-            });
+        const q = prompt(`Số lượng cho ${p.name}:`, "1");
+        if (q > 0 && q <= p.qty) {
+            pendingOrders.push({ id: Date.now(), prodId: p.id, prodName: p.name, qty: Number(q), user: currentUser.username });
             save();
-            alert("Đã gửi yêu cầu xuất hàng. Chờ Admin duyệt!");
-            renderAll();
-        } else {
-            alert("Số lượng không hợp lệ!");
-        }
+            alert("Đã gửi yêu cầu duyệt!");
+        } else { alert("Số lượng không hợp lệ!"); }
     }
 
-    // 5. DUYỆT XUẤT HÀNG (ADMIN ONLY)
     function confirmOrder(orderId, approve) {
         const idx = pendingOrders.findIndex(o => o.id === orderId);
-        const order = pendingOrders[idx];
-
         if (approve) {
-            const pIdx = products.findIndex(p => p.id === order.prodId);
-            if (products[pIdx].qty >= order.qty) {
-                products[pIdx].qty -= order.qty;
-                alert("Đã duyệt xuất kho!");
-            } else {
-                alert("Lỗi: Kho không đủ hàng!");
-            }
+            const pIdx = products.findIndex(p => p.id === pendingOrders[idx].prodId);
+            if (products[pIdx].qty >= pendingOrders[idx].qty) {
+                products[pIdx].qty -= pendingOrders[idx].qty;
+            } else { return alert("Không đủ hàng!"); }
         }
-        
         pendingOrders.splice(idx, 1);
         save();
+    }
+
+    function registerUser() {
+        const u = document.getElementById('new-user').value;
+        const p = document.getElementById('new-pass').value;
+        const r = document.getElementById('new-role').value;
+        if(users.some(x => x.username === u)) return alert("User đã tồn tại!");
+        users.push({ username: u, pass: p, role: r });
+        localStorage.setItem('pro_users', JSON.stringify(users));
+        renderAll();
+        alert("Đã tạo!");
+    }
+
+    function deleteUser(username) {
+        if(username === 'admin') return alert("Không thể xóa Admin gốc!");
+        users = users.filter(u => u.username !== username);
+        localStorage.setItem('pro_users', JSON.stringify(users));
         renderAll();
     }
 
-    // 6. HIỂN THỊ DỮ LIỆU
+    function changePassword() {
+        const old = document.getElementById('old-pass').value;
+        const newP = document.getElementById('new-password').value;
+        if(old !== currentUser.pass) return alert("Sai mật khẩu cũ!");
+        const idx = users.findIndex(u => u.username === currentUser.username);
+        users[idx].pass = newP;
+        currentUser.pass = newP;
+        localStorage.setItem('pro_users', JSON.stringify(users));
+        alert("Thành công!");
+    }
+
     function renderAll() {
+        const key = document.getElementById('search-input')?.value.toLowerCase() || "";
+        const isAdmin = currentUser?.role === 'admin';
+
         // Render Kho
-        const grid = document.getElementById('product-grid');
-        grid.innerHTML = products.map(p => `
+        const filtered = products.filter(p => p.name.toLowerCase().includes(key));
+        document.getElementById('product-grid').innerHTML = filtered.map(p => `
             <div class="prod-card">
                 <img src="${p.img}" class="prod-img">
                 <div class="prod-info">
                     <strong>${p.name}</strong><br>
                     <span style="color:var(--danger)">${Number(p.price).toLocaleString()}đ</span><br>
-                    Tồn kho: <b style="color:${p.qty < 5 ? 'red' : 'green'}">${p.qty}</b><br><br>
-                    <button class="btn-blue" onclick="quickOrder(${p.id})" style="width:100%">Order Nhanh</button>
+                    Tồn: <b style="color:${p.qty < 5 ? 'red' : 'green'}">${p.qty}</b><br><br>
+                    <button class="btn-blue" onclick="quickOrder(${p.id})" style="width:70%">Order</button>
+                    ${isAdmin ? `<button class="btn-red" onclick="deleteProduct(${p.id})" style="width:25%">Xóa</button>` : ''}
                 </div>
             </div>
         `).join('');
 
-        // Render Chờ duyệt
+        // Render Duyệt
         document.getElementById('pending-count').innerText = pendingOrders.length;
-        const table = document.getElementById('pending-table');
-        table.innerHTML = pendingOrders.map(o => `
-            <tr>
-                <td>${o.prodName}</td>
-                <td><b>${o.qty}</b></td>
-                <td>${o.user}</td>
-                <td>
-                    <button class="btn-green" onclick="confirmOrder(${o.id}, true)">Duyệt</button>
-                    <button class="btn-red" onclick="confirmOrder(${o.id}, false)">Hủy</button>
-                </td>
-            </tr>
+        document.getElementById('pending-table').innerHTML = pendingOrders.map(o => `
+            <tr><td>${o.prodName}</td><td>${o.qty}</td><td>${o.user}</td>
+            <td><button class="btn-green" onclick="confirmOrder(${o.id}, true)">Duyệt</button>
+            <button class="btn-red" onclick="confirmOrder(${o.id}, false)">Hủy</button></td></tr>
         `).join('');
+
+        // Render Users
+        if(isAdmin) {
+            document.getElementById('user-table-body').innerHTML = users.map(u => `
+                <tr><td>${u.username}</td><td>${u.role}</td>
+                <td><button class="btn-red" onclick="deleteUser('${u.username}')">Xóa</button></td></tr>
+            `).join('');
+        }
+    }
+
+    function deleteProduct(id) {
+        if(confirm("Xóa sản phẩm này?")) { products = products.filter(p => p.id !== id); save(); }
     }
 
     function save() {
